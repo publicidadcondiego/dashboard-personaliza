@@ -96,7 +96,7 @@ def fetch_meta(date_from, date_to):
     daily = windsor_get(
         ["campaign_id", "date", "spend", "impressions", "clicks", "actions_lead", "reach", "cpm", "ctr", "cpc"],
         date_from, date_to,
-        extra={"date_granularity": "day"}
+        extra={"group_by": "date"}
     )
     daily = sorted(daily, key=lambda r: r.get("date", ""))
 
@@ -341,19 +341,28 @@ def load_history():
         return []
 
 
-def save_history(hist, today, meta, funnel):
+def build_history(daily_meta, today, meta_total, sep_count):
+    """Construye el historial día a día desde los datos de Windsor."""
     os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
-    key = today.isoformat()
-    hist = [h for h in hist if h.get("date") != key]
-    sep = next((v for k, v in funnel if "Separación" in k), 0)
-    hist.append({
-        "date":    key,
-        "spend":   round(meta["spend"], 2),
-        "leads":   meta["leads"],
-        "cpl":     round(meta["cpl"], 2),
-        "sep":     sep,
-    })
-    hist = sorted(hist, key=lambda h: h["date"])[-90:]  # últimos 90 días
+    hist = []
+    total_leads = meta_total["leads"] if meta_total["leads"] else 1  # evitar div/0
+    for row in daily_meta:
+        d = row.get("date", "")
+        if not d:
+            continue
+        leads = num(row.get("actions_lead", 0))
+        spend = num(row.get("spend", 0))
+        cpl   = spend / leads if leads else 0
+        # Distribuir separaciones proporcionalmente al peso de leads del día
+        sep_day = round(sep_count * leads / total_leads, 2)
+        hist.append({
+            "date":  d,
+            "spend": round(spend, 2),
+            "leads": int(leads),
+            "cpl":   round(cpl, 2),
+            "sep":   sep_day,
+        })
+    hist = sorted(hist, key=lambda h: h["date"])[-90:]
     with open(HISTORY_PATH, "w", encoding="utf-8") as f:
         json.dump(hist, f, ensure_ascii=False, indent=2)
     return hist
@@ -810,9 +819,9 @@ def main():
     publicos  = agg_publico(leads_sheet)
     cohortes  = agg_cohortes_mes(leads_sheet)
 
-    # Histórico
-    hist = load_history()
-    hist = save_history(hist, today, meta, funnel)
+    # Histórico — construir desde datos diarios de Windsor
+    sep_total = next((v for k, v in funnel if "Separación" in k), 0)
+    hist = build_history(daily_meta, today, meta, sep_total)
 
     # HTML
     print("Generando HTML…")
