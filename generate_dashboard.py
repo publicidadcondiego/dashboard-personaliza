@@ -79,7 +79,7 @@ def windsor_get(fields, date_from, date_to, extra=None):
     if extra:
         params.update(extra)
     url = f"{API_BASE}/{CONNECTOR}?" + urlencode(params)
-    print(f"DEBUG Windsor URL: {url}")
+    raise SystemExit(f"DEBUG URL: {url}")
     req = Request(url, headers={"User-Agent": "dashboard-bot/1.0"})
     with urlopen(req, timeout=120) as r:
         payload = json.loads(r.read().decode("utf-8"))
