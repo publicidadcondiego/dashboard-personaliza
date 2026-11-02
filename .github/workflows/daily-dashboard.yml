@@ -1,0 +1,61 @@
+name: Dashboard diario Personaliza
+
+# Corre todos los días a las 08:00 Lima (13:00 UTC) y también a mano.
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repo
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          pip install --break-system-packages \
+            google-auth \
+            google-api-python-client
+
+      - name: Generar dashboard
+        env:
+          WINDSOR_API_KEY:   ${{ secrets.WINDSOR_API_KEY }}
+          GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+          SHEET_ID:          ${{ secrets.SHEET_ID }}
+        run: python generate_dashboard.py
+
+      - name: Commit del HTML actualizado
+        run: |
+          git config user.name  "dashboard-bot"
+          git config user.email "dashboard-bot@users.noreply.github.com"
+          git add index.html data/history.json
+          git commit -m "Dashboard Personaliza · $(date +%F)" || echo "Sin cambios"
+          git push
+
+      - name: Subir artefacto para Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
