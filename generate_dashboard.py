@@ -69,8 +69,8 @@ def windsor_get(fields, date_from, date_to, extra=None):
         raise SystemExit("Falta WINDSOR_API_KEY")
     params = {
         "api_key":   WINDSOR_API_KEY,
-        "connector": CONNECTOR,
-        "accounts":  META_ACCOUNT,
+        "connector":  CONNECTOR,
+        "account_id": META_ACCOUNT,
         "date_from": date_from.isoformat(),
         "date_to":   date_to.isoformat(),
         "fields":    ",".join(fields),
