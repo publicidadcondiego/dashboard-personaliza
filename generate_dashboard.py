@@ -78,8 +78,11 @@ def windsor_get(fields, date_from, date_to, extra=None):
     }
     if extra:
         params.update(extra)
-    url = f"{API_BASE}/{CONNECTOR}?" + urlencode(params)
-    raise SystemExit(f"DEBUG URL: {url}")
+    # Construir query string manualmente para que 'fields' use comas literales
+    # (urlencode convierte comas a %2C, Windsor puede rechazarlo)
+    fields_val = params.pop("fields")
+    base_qs = urlencode(params)
+    url = f"{API_BASE}/{CONNECTOR}?{base_qs}&fields={fields_val}"
     req = Request(url, headers={"User-Agent": "dashboard-bot/1.0"})
     with urlopen(req, timeout=120) as r:
         payload = json.loads(r.read().decode("utf-8"))
