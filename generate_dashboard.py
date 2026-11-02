@@ -67,14 +67,16 @@ def fmt_int(v):
 def windsor_get(fields, date_from, date_to, extra=None):
     if not WINDSOR_API_KEY:
         raise SystemExit("Falta WINDSOR_API_KEY")
+    import json as _json
+    filters = _json.dumps([["campaign_id", "eq", CAMPAIGN_ID]])
     params = {
-        "api_key":    WINDSOR_API_KEY,
+        "api_key":   WINDSOR_API_KEY,
         "connector":  CONNECTOR,
-        "accounts":   META_ACCOUNT,
-        "campaign_id": CAMPAIGN_ID,
-        "date_from":  date_from.isoformat(),
-        "date_to":    date_to.isoformat(),
-        "_renderer":  "json",
+        "accounts":  META_ACCOUNT,
+        "date_from": date_from.isoformat(),
+        "date_to":   date_to.isoformat(),
+        "_renderer": "json",
+        "filters":   filters,
     }
     if extra:
         params.update(extra)
