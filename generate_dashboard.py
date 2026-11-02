@@ -70,7 +70,7 @@ def windsor_get(fields, date_from, date_to, extra=None):
     params = {
         "api_key":   WINDSOR_API_KEY,
         "connector":  CONNECTOR,
-        "account_id": META_ACCOUNT,
+        "accounts":  META_ACCOUNT,
         "date_from": date_from.isoformat(),
         "date_to":   date_to.isoformat(),
         "fields":    ",".join(fields),
