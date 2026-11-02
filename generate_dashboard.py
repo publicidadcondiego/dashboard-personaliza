@@ -92,10 +92,11 @@ def windsor_get(fields, date_from, date_to, extra=None):
 
 def fetch_meta(date_from, date_to):
     """Trae todos los segmentos que necesita el dashboard."""
-    # Totales diarios
+    # Totales diarios — forzar desglose por día
     daily = windsor_get(
         ["campaign_id", "date", "spend", "impressions", "clicks", "actions_lead", "reach", "cpm", "ctr", "cpc"],
-        date_from, date_to
+        date_from, date_to,
+        extra={"date_granularity": "day"}
     )
     daily = sorted(daily, key=lambda r: r.get("date", ""))
 
