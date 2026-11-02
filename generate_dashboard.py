@@ -67,8 +67,6 @@ def fmt_int(v):
 def windsor_get(fields, date_from, date_to, extra=None):
     if not WINDSOR_API_KEY:
         raise SystemExit("Falta WINDSOR_API_KEY")
-    import json as _json
-    filters = _json.dumps([["campaign_id", "eq", CAMPAIGN_ID]])
     params = {
         "api_key":   WINDSOR_API_KEY,
         "connector":  CONNECTOR,
@@ -76,7 +74,6 @@ def windsor_get(fields, date_from, date_to, extra=None):
         "date_from": date_from.isoformat(),
         "date_to":   date_to.isoformat(),
         "_renderer": "json",
-        "filters":   filters,
     }
     if extra:
         params.update(extra)
@@ -87,27 +84,30 @@ def windsor_get(fields, date_from, date_to, extra=None):
     req = Request(url, headers={"User-Agent": "dashboard-bot/1.0"})
     with urlopen(req, timeout=120) as r:
         payload = json.loads(r.read().decode("utf-8"))
-    return payload.get("data", payload if isinstance(payload, list) else [])
+    rows = payload.get("data", payload if isinstance(payload, list) else [])
+    # Filtrar por campaña en Python
+    rows = [r for r in rows if str(r.get("campaign_id", CAMPAIGN_ID)) == CAMPAIGN_ID]
+    return rows
 
 
 def fetch_meta(date_from, date_to):
     """Trae todos los segmentos que necesita el dashboard."""
     # Totales diarios
     daily = windsor_get(
-        ["date", "spend", "impressions", "clicks", "actions_lead", "reach", "cpm", "ctr", "cpc"],
+        ["campaign_id", "date", "spend", "impressions", "clicks", "actions_lead", "reach", "cpm", "ctr", "cpc"],
         date_from, date_to
     )
     daily = sorted(daily, key=lambda r: r.get("date", ""))
 
     # Por anuncio (acumulado)
     by_ad = windsor_get(
-        ["ad_name", "spend", "impressions", "ctr", "cpm", "actions_lead"],
+        ["campaign_id", "ad_name", "spend", "impressions", "ctr", "cpm", "actions_lead"],
         date_from, date_to
     )
 
     # Por plataforma (Facebook vs Instagram)
     by_place = windsor_get(
-        ["publisher_platform", "spend", "actions_lead"],
+        ["campaign_id", "publisher_platform", "spend", "actions_lead"],
         date_from, date_to
     )
 
