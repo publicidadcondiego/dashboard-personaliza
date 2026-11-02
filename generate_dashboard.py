@@ -79,8 +79,10 @@ def windsor_get(fields, date_from, date_to, extra=None):
     if extra:
         params.update(extra)
     url = f"{API_BASE}/{CONNECTOR}?" + urlencode(params)
+    print(f"[DEBUG] Windsor URL: {url[:200]}")
     req = Request(url, headers={"User-Agent": "dashboard-bot/1.0"})
-    with urlopen(req, timeout=120) as r:
+    try:
+        with urlopen(req, timeout=120) as r:
         payload = json.loads(r.read().decode("utf-8"))
     return payload.get("data", payload if isinstance(payload, list) else [])
 
@@ -89,20 +91,20 @@ def fetch_meta(date_from, date_to):
     """Trae todos los segmentos que necesita el dashboard."""
     # Totales diarios
     daily = windsor_get(
-        ["date", "spend", "impressions", "clicks", "leads", "reach", "cpm", "ctr", "cpc"],
+        ["date", "spend", "impressions", "clicks", "actions_lead", "reach", "cpm", "ctr", "cpc"],
         date_from, date_to
     )
     daily = sorted(daily, key=lambda r: r.get("date", ""))
 
     # Por anuncio (acumulado)
     by_ad = windsor_get(
-        ["ad_name", "spend", "impressions", "ctr", "cpm", "leads"],
+        ["ad_name", "spend", "impressions", "ctr", "cpm", "actions_lead"],
         date_from, date_to
     )
 
-    # Por placement
+    # Por plataforma (Facebook vs Instagram)
     by_place = windsor_get(
-        ["publisher_platform", "placement", "spend", "leads"],
+        ["publisher_platform", "spend", "actions_lead"],
         date_from, date_to
     )
 
@@ -199,7 +201,7 @@ def fetch_sheet():
 # ─────────────────────────────────────────────────────────────
 def agg_meta(daily):
     spend   = sum(num(r.get("spend"))       for r in daily)
-    leads   = sum(num(r.get("leads"))       for r in daily)
+    leads   = sum(num(r.get("actions_lead")) for r in daily)
     impr    = sum(num(r.get("impressions")) for r in daily)
     clicks  = sum(num(r.get("clicks"))      for r in daily)
     reach   = max(num(r.get("reach", 0))    for r in daily) if daily else 0
@@ -219,7 +221,7 @@ def agg_ads(by_ad):
             ads[name] = {"spend": 0, "impressions": 0, "leads": 0, "ctr_sum": 0, "n": 0}
         ads[name]["spend"]       += num(r.get("spend"))
         ads[name]["impressions"] += num(r.get("impressions"))
-        ads[name]["leads"]       += num(r.get("leads"))
+        ads[name]["leads"]       += num(r.get("actions_lead"))
         ads[name]["ctr_sum"]     += num(r.get("ctr"))
         ads[name]["n"]           += 1
 
@@ -240,7 +242,7 @@ def agg_placements(by_place):
         if key not in places:
             places[key] = {"spend": 0, "leads": 0}
         places[key]["spend"] += num(r.get("spend"))
-        places[key]["leads"] += num(r.get("leads"))
+        places[key]["leads"] += num(r.get("actions_lead"))
     result = []
     for k, v in places.items():
         cpl = v["spend"] / v["leads"] if v["leads"] else None
