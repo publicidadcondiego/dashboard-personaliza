@@ -68,22 +68,20 @@ def windsor_get(fields, date_from, date_to, extra=None):
     if not WINDSOR_API_KEY:
         raise SystemExit("Falta WINDSOR_API_KEY")
     params = {
-        "api_key":   WINDSOR_API_KEY,
+        "api_key":    WINDSOR_API_KEY,
         "connector":  CONNECTOR,
-        "accounts":  META_ACCOUNT,
-        "date_from": date_from.isoformat(),
-        "date_to":   date_to.isoformat(),
-        "fields":    ",".join(fields),
-        "_renderer": "json",
+        "accounts":   META_ACCOUNT,
+        "campaign_id": CAMPAIGN_ID,
+        "date_from":  date_from.isoformat(),
+        "date_to":    date_to.isoformat(),
+        "_renderer":  "json",
     }
     if extra:
         params.update(extra)
     # Construir query string manualmente para que 'fields' use comas literales
-    # (urlencode convierte comas a %2C, Windsor puede rechazarlo)
-    fields_val = params.pop("fields")
+    fields_str = ",".join(fields)
     base_qs = urlencode(params)
-    url = f"{API_BASE}/{CONNECTOR}?{base_qs}&fields={fields_val}"
-    print(f"DEBUG URL: {url}", flush=True)
+    url = f"{API_BASE}/{CONNECTOR}?{base_qs}&fields={fields_str}"
     req = Request(url, headers={"User-Agent": "dashboard-bot/1.0"})
     with urlopen(req, timeout=120) as r:
         payload = json.loads(r.read().decode("utf-8"))
