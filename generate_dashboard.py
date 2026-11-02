@@ -98,7 +98,6 @@ def fetch_meta(date_from, date_to):
         date_from, date_to,
         extra={"group_by": "date"}
     )
-    print(f"  [DEBUG] daily rows={len(daily)}, primeras fechas={[r.get('date') for r in daily[:5]]}")
     daily = sorted(daily, key=lambda r: r.get("date", ""))
 
     # Por anuncio (acumulado)
